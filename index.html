@@ -2,76 +2,136 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>چت روم رایگان</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>چت روم جیبی</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: Tahoma, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        #chat-container { width: 90%; max-width: 400px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; }
-        #messages { height: 400px; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message { padding: 8px 12px; border-radius: 10px; max-width: 80%; word-wrap: break-word; }
-        .mine { background: #dcf8c6; align-self: flex-end; }
-        .others { background: #fff; border: 1px solid #ddd; align-self: flex-start; }
-        .input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 5px; }
-        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
-        button { background: #25d366; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #e5ddd5; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+        }
+        
+        /* هدر سایت */
+        header { background: #075e54; color: white; padding: 15px; text-align: center; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        /* بخش نمایش پیام‌ها */
+        #messages { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+
+        .message { 
+            padding: 10px 15px; 
+            border-radius: 15px; 
+            max-width: 85%; 
+            word-wrap: break-word; 
+            font-size: 14px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .msg-box { background: white; align-self: flex-start; border-top-right-radius: 2px; }
+        .user-name { font-size: 11px; color: #075e54; font-weight: bold; display: block; margin-bottom: 4px; }
+
+        /* بخش پایین (ورودی‌ها) */
+        .input-area { 
+            background: #f0f0f0; 
+            padding: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            border-top: 1px solid #ddd;
+        }
+
+        input { 
+            padding: 12px; 
+            border: none; 
+            border-radius: 25px; 
+            outline: none; 
+            font-size: 14px;
+        }
+        #userInput { width: 80px; text-align: center; }
+        #messageInput { flex: 1; }
+
+        button { 
+            background: #128c7e; 
+            color: white; 
+            border: none; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0; /* مانع از کوچک شدن دکمه می‌شود */
+        }
+        button:active { background: #075e54; }
     </style>
 </head>
 <body>
 
-<div id="chat-container">
-    <div id="messages"></div>
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="نام شما..." style="flex: 0.4;">
-        <input type="text" id="messageInput" placeholder="پیام بنویسید...">
-        <button onclick="sendMessage()">ارسال</button>
-    </div>
+<header>چت روم عمومی</header>
+
+<div id="messages"></div>
+
+<div class="input-area">
+    <input type="text" id="userInput" placeholder="نام">
+    <input type="text" id="messageInput" placeholder="پیام شما...">
+    <button onclick="sendMessage()">✈</button>
 </div>
 
 <script>
-    // --- بخش تنظیمات (اینجا را باید پر کنی) ---
+    // --- اطلاعات سوپابیس خودت را اینجا بگذار ---
     const SUPABASE_URL = 'https://nefnjochiaowqsojvaxf.supabase.co'; 
     const SUPABASE_KEY = 'sb_publishable_JPylE5aN3KRD5R53C6EnPg_uPJlTiEv';
     // ---------------------------------------
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // دریافت پیام‌ها
     async function loadMessages() {
-        const { data, error } = await supabase
+        const { data, error } = await _supabase
             .from('messages')
             .select('*')
             .order('created_at', { ascending: true });
 
-        if (error) console.error('Error:', error);
-        else {
+        if (!error) {
             const container = document.getElementById('messages');
             container.innerHTML = data.map(m => `
-                <div class="message others">
-                    <small style="color: #888;">${m.user_name}</small><br>${m.message_text}
+                <div class="message msg-box">
+                    <span class="user-name">${m.user_name}</span>
+                    ${m.message_text}
                 </div>
             `).join('');
             container.scrollTop = container.scrollHeight;
         }
     }
 
-    // ارسال پیام
     async function sendMessage() {
         const user = document.getElementById('userInput').value || 'ناشناس';
         const text = document.getElementById('messageInput').value;
         if (!text) return;
 
-        const { error } = await supabase
+        const { error } = await _supabase
             .from('messages')
             .insert([{ user_name: user, message_text: text }]);
 
-        if (error) alert('خطا در ارسال!');
-        else {
+        if (!error) {
             document.getElementById('messageInput').value = '';
             loadMessages();
+        } else {
+            alert('خطا در اتصال به دیتابیس!');
         }
     }
 
-    // هر ۳ ثانیه پیام‌های جدید را بگیر
     setInterval(loadMessages, 3000);
     loadMessages();
 </script>
